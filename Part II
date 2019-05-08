@@ -1,0 +1,279 @@
+See the project report for descriptions of the dataset used. Due to concerns loading a very large dataset, crime data were pulled from each year,
+cleaned separately, and joined.
+
+Create panel dataset for 2011 by month, year, and beat, filling in 0's for beats that experienced 0 crimes in certain months.
+Repeat process to disaggregate crimes by type and domestic (true or false). Categories for index and violent crime are defined using
+Chicago Police Department definitions.
+
+```{r Clean 2011}
+library(tidyverse)
+bymonth11=
+  crimes2011 %>%
+  separate(Date, into = c("Month"), sep=2)
+bymonth11$Month=as.numeric(bymonth11$Month)
+domestic11=
+  bymonth11 %>%
+  group_by(Year, Month, Beat, Domestic) %>%
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, Domestic, fill = list(Count = 0)) %>%
+  spread(key = Domestic, value = Count) %>%
+  mutate(Crime = (`FALSE` + `TRUE`))
+crimetypes11=
+  bymonth11 %>%
+  group_by(Year, Month, Beat, `Primary Type`) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, `Primary Type`, fill=list(count=0)) %>%
+  spread(key = `Primary Type`, value = count) %>%
+  mutate(Index = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY` + `BURGLARY` + `THEFT` + `MOTOR VEHICLE THEFT` + `ARSON`)) %>%
+  mutate(Violent = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY`)) %>%
+  subset(select = c(Year, Month, Beat, Index, Violent))
+clean11 = left_join(domestic11, crimetypes11, by = NULL)
+```
+
+Repeat steps for 2012 crimes.
+
+```{r Clean 2012}
+bymonth12=
+  crimes2012 %>%
+  separate(Date, into = c("Month"), sep=2)
+bymonth12$Month=as.numeric(bymonth12$Month)
+domestic12=
+  bymonth12 %>%
+  group_by(Year, Month, Beat, Domestic) %>%
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, Domestic, fill = list(Count = 0)) %>%
+  spread(key = Domestic, value = Count) %>%
+  mutate(Crime = (`FALSE` + `TRUE`))
+crimetypes12=
+  bymonth12 %>%
+  group_by(Year, Month, Beat, `Primary Type`) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, `Primary Type`, fill=list(count=0)) %>%
+  spread(key = `Primary Type`, value = count) %>%
+  mutate(Index = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY` + `BURGLARY` + `THEFT` + `MOTOR VEHICLE THEFT` + `ARSON`)) %>%
+  mutate(Violent = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY`)) %>%
+  subset(select = c(Year, Month, Beat, Index, Violent))
+clean12 = left_join(domestic12, crimetypes12, by = NULL)
+```
+
+Repeat steps for 2013 crimes.
+```{r Clean 2013}
+bymonth13=
+  crimes2013 %>%
+  separate(Date, into = c("Month"), sep=2)
+bymonth13$Month=as.numeric(bymonth13$Month)
+domestic13=
+  bymonth13 %>%
+  group_by(Year, Month, Beat, Domestic) %>%
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, Domestic, fill = list(Count = 0)) %>%
+  spread(key = Domestic, value = Count) %>%
+  mutate(Crime = (`FALSE` + `TRUE`))
+crimetypes13=
+  bymonth13 %>%
+  group_by(Year, Month, Beat, `Primary Type`) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, `Primary Type`, fill=list(count=0)) %>%
+  spread(key = `Primary Type`, value = count) %>%
+  mutate(Index = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY` + `BURGLARY` + `THEFT` + `MOTOR VEHICLE THEFT` + `ARSON`)) %>%
+  mutate(Violent = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY`)) %>%
+  subset(select = c(Year, Month, Beat, Index, Violent))
+clean13 = left_join(domestic13, crimetypes13, by = NULL)
+```
+
+Repeat for 2014 crimes.
+```{r Clean 2014}
+bymonth14=
+  crimes2014 %>%
+  separate(Date, into = c("Month"), sep=2)
+bymonth14$Month=as.numeric(bymonth14$Month)
+domestic14=
+  bymonth14 %>%
+  group_by(Year, Month, Beat, Domestic) %>%
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, Domestic, fill = list(Count = 0)) %>%
+  spread(key = Domestic, value = Count) %>%
+  mutate(Crime = (`FALSE` + `TRUE`))
+crimetypes14=
+  bymonth14 %>%
+  group_by(Year, Month, Beat, `Primary Type`) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, `Primary Type`, fill=list(count=0)) %>%
+  spread(key = `Primary Type`, value = count) %>%
+  mutate(Index = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY` + `BURGLARY` + `THEFT` + `MOTOR VEHICLE THEFT` + `ARSON`)) %>%
+  mutate(Violent = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY`)) %>%
+  subset(select = c(Year, Month, Beat, Index, Violent))
+clean14 = left_join(domestic14, crimetypes14, by = NULL)
+```
+
+Repeat for 2015 crimes.
+```{r Clean 2015}
+bymonth15=
+  crimes2015 %>%
+  separate(Date, into = c("Month"), sep=2)
+bymonth15$Month=as.numeric(bymonth15$Month)
+domestic15=
+  bymonth15 %>%
+  group_by(Year, Month, Beat, Domestic) %>%
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, Domestic, fill = list(Count = 0)) %>%
+  spread(key = Domestic, value = Count) %>%
+  mutate(Crime = (`FALSE` + `TRUE`))
+crimetypes15=
+  bymonth15 %>%
+  group_by(Year, Month, Beat, `Primary Type`) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, `Primary Type`, fill=list(count=0)) %>%
+  spread(key = `Primary Type`, value = count) %>%
+  mutate(Index = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY` + `BURGLARY` + `THEFT` + `MOTOR VEHICLE THEFT` + `ARSON`)) %>%
+  mutate(Violent = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY`)) %>%
+  subset(select = c(Year, Month, Beat, Index, Violent))
+clean15 = left_join(domestic15, crimetypes15, by = NULL)
+```
+
+Repeat for 2016 crimes.
+```{r Clean 2016}
+bymonth16=
+  crimes2016 %>%
+  separate(Date, into = c("Month"), sep=2)
+bymonth16$Month=as.numeric(bymonth16$Month)
+domestic16=
+  bymonth16 %>%
+  group_by(Year, Month, Beat, Domestic) %>%
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, Domestic, fill = list(Count = 0)) %>%
+  spread(key = Domestic, value = Count) %>%
+  mutate(Crime = (`FALSE` + `TRUE`))
+crimetypes16=
+  bymonth16 %>%
+  group_by(Year, Month, Beat, `Primary Type`) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, `Primary Type`, fill=list(count=0)) %>%
+  spread(key = `Primary Type`, value = count) %>%
+  mutate(Index = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY` + `BURGLARY` + `THEFT` + `MOTOR VEHICLE THEFT` + `ARSON`)) %>%
+  mutate(Violent = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY`)) %>%
+  subset(select = c(Year, Month, Beat, Index, Violent))
+clean16 = left_join(domestic16, crimetypes16, by = NULL)
+```
+
+Repeat for 2017 crimes.
+```{r Clean 2017}
+bymonth17=
+  crimes2017 %>%
+  separate(Date, into = c("Month"), sep=2)
+bymonth17$Month=as.numeric(bymonth17$Month)
+domestic17=
+  bymonth17 %>%
+  group_by(Year, Month, Beat, Domestic) %>%
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, Domestic, fill = list(Count = 0)) %>%
+  spread(key = Domestic, value = Count) %>%
+  mutate(Crime = (`FALSE` + `TRUE`))
+crimetypes17=
+  bymonth17 %>%
+  group_by(Year, Month, Beat, `Primary Type`) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, `Primary Type`, fill=list(count=0)) %>%
+  spread(key = `Primary Type`, value = count) %>%
+  mutate(Index = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY` + `BURGLARY` + `THEFT` + `MOTOR VEHICLE THEFT` + `ARSON`)) %>%
+  mutate(Violent = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY`)) %>%
+  subset(select = c(Year, Month, Beat, Index, Violent))
+clean17 = left_join(domestic17, crimetypes17, by = NULL)
+```
+
+Repeat for 2018 crimes.
+```{r Clean 2018}
+bymonth18=
+  crimes2018 %>%
+  separate(Date, into = c("Month"), sep=2)
+bymonth18$Month=as.numeric(bymonth18$Month)
+domestic18=
+  bymonth18 %>%
+  group_by(Year, Month, Beat, Domestic) %>%
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, Domestic, fill = list(Count = 0)) %>%
+  spread(key = Domestic, value = Count) %>%
+  mutate(Crime = (`FALSE` + `TRUE`))
+crimetypes18=
+  bymonth18 %>%
+  group_by(Year, Month, Beat, `Primary Type`) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  complete(Year, Month, Beat, `Primary Type`, fill=list(count=0)) %>%
+  spread(key = `Primary Type`, value = count) %>%
+  mutate(Index = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY` + `BURGLARY` + `THEFT` + `MOTOR VEHICLE THEFT` + `ARSON`)) %>%
+  mutate(Violent = (`HOMICIDE` + `CRIM SEXUAL ASSAULT` + `ROBBERY` + `ASSAULT` + `BATTERY`)) %>%
+  subset(select = c(Year, Month, Beat, Index, Violent))
+clean18 = left_join(domestic18, crimetypes18, by = NULL)
+```
+
+Combine all datasets and create dummy variables for fixed effects (year and beat variables):
+```{r Combined}
+crimecombined=rbind(clean11, clean12, clean13, clean14, clean15, clean16, clean17, clean18, deparse.level = 1)
+adddummies=fastDummies::dummy_cols(crimecombined, select_columns=c("Year", "Beat"), remove_first_dummy = TRUE)
+```
+
+Add predictors on school closures. This dataset only includes the information for beats in the years 2015-2018.
+The vectors are only >0 for those years.
+
+```{r Join Data}
+mastercrimes=left_join(adddummies, schoolclosuredata, by = NULL)
+mastercrimes[is.na(mastercrimes)]=0
+```
+
+Once this master dataset is created, try linear regressions on each combination of crime rate outputs (5) and school closure predictors (2).
+```{r ClosedYes and Index}
+indexclosed=lm(Index~. -SchoolClosures - `FALSE` - `TRUE` - Crime - Violent - Year - Beat, data=mastercrimes)
+```
+
+```{r ClosedYes and Violent}
+violentclosed=lm(Violent~. -SchoolClosures - Index - `TRUE` - Crime - `FALSE` - Year - Beat, data=mastercrimes)
+```
+
+```{r ClosedYes and Crime}
+crimeclosed=lm(Crime~. -SchoolClosures - Index - `TRUE` - Violent - `FALSE` - Year - Beat, data=mastercrimes)
+```
+
+```{r ClosedYes and Non-Domestic}
+NDclosed=lm(`FALSE`~. -SchoolClosures - Index - `TRUE` - Crime - Violent - Year - Beat, data=mastercrimes)
+```
+
+```{r ClosedYes and Domestic}
+domesticclosed=lm(`TRUE`~. -SchoolClosures - Index - Crime - Violent - `FALSE` - Year - Beat, data=mastercrimes)
+```
+
+```{r SchoolClosures and Index}
+indexsclose=lm(Index~. -ClosedYes - `FALSE` - `TRUE` - Crime - Violent - Year - Beat, data=mastercrimes)
+```
+
+```{r SchoolClosures and Violent}
+violentsclose=lm(Violent~. -ClosedYes - `FALSE` - `TRUE` - Crime - Index - Year - Beat, data=mastercrimes)
+```
+
+```{r SchoolClosures and Crime}
+crimesclose=lm(Crime~. -ClosedYes - Index - `TRUE` - Violent - `FALSE` - Year - Beat, data=mastercrimes)
+```
+
+```{r SchoolClosures and Domestic}
+domesticsclose=lm(`TRUE`~. -ClosedYes - Index - Crime - Violent - `FALSE` - Year - Beat, data=mastercrimes)
+```
+
+```{r SchoolClosures and Non-Domestic}
+NDsclose=lm(`FALSE`~. -ClosedYes - Index - `TRUE` - Violent - Crime - Year - Beat, data=mastercrimes)
+```
+Coefficients and summary statistics are reproduced in the project report.
