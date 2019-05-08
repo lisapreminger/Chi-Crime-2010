@@ -1,0 +1,378 @@
+---
+title: "Chicago Crime 2010 by Community Area"
+date: "5/08/2019"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loads the primary data set, which contains census data from 2010 by community area in Chicago, crime data, and information about physicians and hospitals in the same areas.   
+
+### Original data set:  main 
+### Modified data set:  main.mod (ends at column 39, to eliminate non-functioning subsequent columns)
+### Numeric data set:   main.num (removes column 1 from main.mod, which contain non-numeric community names)
+
+```{r}
+install.packages("dplyr")
+install.packages("tidyverse")
+library(dplyr)
+library(tidyverse)
+main = read.csv("Census_Crime_Hospital.csv")
+main.mod = main %>%
+  select (1:39)
+main.num = main.mod %>%
+  select(-1)
+head(main.num)
+```
+
+## Loads a separate file (called schools) which contains the number of schools in each community area.  Removes the first column from that file, which is non-numeric (contains the name of each community area), and names the numeric file schools.num.
+
+```{r}
+library(tidyverse)
+schools = read.csv("Schools_by_community.csv")
+schools.num = schools %>%
+  select(-1)
+schools.num
+```
+
+## Joins the 2 databases by community area using a left_join command.  The new dataframe is called crime_schools.num.   Eliminates 3 columns because of collinearity: "Households," "Owned Units Clear," and "Housing Units" are represented by other predictors in the model. 
+
+```{r}
+library(dplyr)
+crime_schools_pre.num = left_join(schools.num,main.num,copy=FALSE)
+head(crime_schools_pre.num)
+crime_schools.num = crime_schools_pre.num %>%
+  select(-13, -15,-19)
+head(crime_schools.num)
+```
+
+## Adds 2 new columns to the crime_schools.num called "Violent_Crime" and "NonViolent_Crime." 
+
+### Violent_Crime is an aggregate of the following, separate by community area:  Murder, Sexual Assault, Robbery, Aggravated Assault, and Aggravated Battery.
+### NonViolent_Crime is an aggregate of: Burglary, Theeft, Motor Vehicle Theft, and Arson.  
+
+### The last command plots Violent_Crime against NonViolent_Crime and shows a positive correlation between the two. 
+
+```{r}
+crime_schools.num$Violent_Crime = rowSums(cbind(crime_schools.num$Murder, crime_schools.num$SexualAssault, crime_schools.num$Robbery, crime_schools.num$AggAssault, crime_schools.num$AggBattery),na.rm=T)
+crime_schools.num$NonViolent_Crime = rowSums(cbind(crime_schools.num$Burglary, crime_schools.num$Theft, crime_schools.num$MVTheft, crime_schools.num$Arson),na.rm=T)
+plot(crime_schools.num$Violent_Crime, crime_schools.num$NonViolent_Crime)
+head(crime_schools.num)
+```
+
+## Prepares the data for analysis.  Eliminates the "community area" column since it is not a predictor, and eliminates the indiviual crime columns since all together they now form the Violent_Crime and Non_Violent Crime columns, which are our the outcomes that we are trying to predict.
+
+### Separates into 2 different data frames, one that contains each of the y predictors.  
+
+### The first is called crime_schools_violent.num
+### The second is called crime_schools_nonviolent.num
+
+```{r}
+install.packages("dplyr")
+library(dplyr)
+library(tidyverse)
+crime_schools_violent.num = crime_schools.num %>%
+  select(2:23,34:37)
+crime_schools_nonviolent.num = crime_schools.num %>%
+  select(2:23,34:36,38)
+head(crime_schools_violent.num)
+```
+## Does 4 different linear regression models.
+
+# TEAM - please look at these to make sure I interpreted all of the census variables right. TwoPlus which is race i think??   Also I'm not sure why some of them are NA and I dont think its right.  Also if we want to take up space we could list all of the predictors here. 
+
+## The first model looks at predictors other than race and their ability to predict violent crime in a specific community area. 
+
+## The second model looks at the same predictors as the first model and their ability to predict nonviolent crime in a specific community area.  
+
+## The third model uses all the predictors to predict violent crime in a community area.  It  includes all of the above, plus racial/ethnic predictors: White, Black, American Indian Alaskan  Native, Asian, Hispanic/Latino, Native Hawaiin/Other Pacific Islander, Other, and More than one race. 
+
+## The fourth model looks at the same predictors as the third model and their ability to predict nonviolent crime in a specific community area.  
+
+```{r}
+lm.fit.vc.norace = lm(Violent_Crime~.-White-Black-AIAN-Asian-HispLat-NHPI-Other-TwoPlus,data=crime_schools_violent.num)
+summary(lm.fit.vc.norace)
+
+lm.fit.nvc.norace = lm(NonViolent_Crime~.-White-Black-AIAN-Asian-HispLat-NHPI-Other-TwoPlus,data=crime_schools_nonviolent.num)
+summary(lm.fit.nvc.norace)
+
+lm.fit.vc.all = lm(Violent_Crime~.,data=crime_schools_violent.num)
+summary(lm.fit.vc.all)
+
+lm.fit.nvc.all = lm(NonViolent_Crime~.,data=crime_schools_nonviolent.num)
+summary(lm.fit.nvc.all)
+```
+
+## Uses the validation set approach to split the observations into a training and test set for each of the data frames (for violent crime prediction).
+
+```{r}
+set.seed(1)
+train=sample(c(TRUE,FALSE), nrow(crime_schools_violent.num),rep=TRUE)
+test = (!train)
+show(train)
+
+```
+
+## Performs best subset selection on the training set to identify the model with the most accurate predictors for violent crime in a community area. 
+
+```{r}
+library(leaps)
+regfit.best=regsubsets(Violent_Crime~.,
+                       data=crime_schools_violent.num[train,],
+                       nvmax=19)
+test.mat=model.matrix(Violent_Crime~.,
+                      data=crime_schools_violent.num[test,])
+val.errors=rep(NA,19)
+for (i in 1:19) {
+  coefi = coef(regfit.best, id=i)
+  pred = test.mat[,names(coefi)]%*%coefi
+  val.errors[i] = mean((crime_schools_violent.num$Violent_Crime[test]-pred)^2)
+}
+val.errors
+which.min(val.errors)
+options(scipen=999)
+coef(regfit.best,7)
+```
+
+### We find that the best model for violent crime when we used the training contains the following 8 predictors:  Black, American indian and Alaskan Native, Two or more Races, Median Age, Occupied Units, Owned Units on Loan, and Percent Crowded.    The only ones with significant coefficients are Median age (-11.6) and Percent crowded (+6.3). 
+
+## We will now use best subset selection on the full data set to select the best 8-variable model:
+
+```{r}
+regfit.best2=regsubsets(Violent_Crime~.,data=crime_schools_violent.num,nvmax=19)
+coef(regfit.best2,7)
+```
+
+### We find that the best model when we used the full data set contains 8 predictors that are not the same. They are now:  White, Black, Median Age, Occupied Units, Vacant Housing Units, Owned Units on Loan, and Percent CCrowded.  Median Age and Percent Crowded are still the only 2 that have significant coefficients: -9.0 and +20.1, respectively. 
+
+
+## Uses the validation set approach to split the observations into a training and test set for each of the data frames (for nonviolent crime prediction).
+
+```{r}
+train_nonviolent = sample(c(TRUE,FALSE), nrow(crime_schools_nonviolent.num), rep=TRUE)
+test_nonviolent = (!train_nonviolent)
+```
+
+## Performs best subset selection on the training set to identify the model with the most accurate predictors for nonviolent crime in a community area. 
+
+```{r}
+library(leaps)
+regfit.best3=regsubsets(NonViolent_Crime~.,
+                       data=crime_schools_nonviolent.num[train_nonviolent,],
+                       nvmax=19)
+test.mat=model.matrix(NonViolent_Crime~.,
+                      data=crime_schools_nonviolent.num[test_nonviolent,])
+val.errors=rep(NA,19)
+for (i in 1:19) {
+  coefi = coef(regfit.best3, id=i)
+  pred = test.mat[,names(coefi)]%*%coefi
+  val.errors[i] = mean((crime_schools_nonviolent.num$NonViolent_Crime[test_nonviolent]-pred)^2)
+}
+val.errors
+which.min(val.errors)
+coef(regfit.best3,6)
+```
+
+```{r}
+
+```
+
+### We find that the best model when we used the training contains the following 6 predictors for nonviolent crime:  White, Median Age, Occupied Units, Owned Units on Loan, Renter Occupied, and Physician Index
+
+## We will now use best subset selection on the full data set to select the best 6-variable model for nonviolent crime:
+
+```{r}
+regfit.best4=regsubsets(NonViolent_Crime~.,data=crime_schools_nonviolent.num,nvmax=19)
+coef(regfit.best4,6)
+
+plot(regfit.best4)
+```
+
+### We find that the best model when we used the full data set contains 6 predictors that are not the same. They are now:  Number of Schools, White, Native Hawaiin or Pacific Islander, Owned Units on Loan, Renter Occupied and Households.  
+
+## Performs Princpal Components Regression to predict Violent Crime by Community Area.
+## Performs PCR with the whole data set to select M with least Cross Validation Error
+
+```{r}
+install.packages("pls")
+library(pls)
+set.seed(2)
+pcr.fit=pcr(Violent_Crime~.,
+            data =crime_schools_violent.num,
+            scale=TRUE,
+            validation="CV")
+summary(pcr.fit)
+validationplot(pcr.fit,val.type="MSEP")
+show(% variance explained)
+```
+### We find that the lowest cross-validation error occurs when M = 12.  When M=12, 96.45% of the variance is explained. Additional Ms do not significantly increase the amount of variance explained.
+
+## Performs PCR for Violent Crime on the training data, so that we can compute Test MSE. 
+
+```{r}
+library(pls)
+set.seed(2)
+pcr.fit2=pcr(Violent_Crime~.,
+            data =crime_schools_violent.num,
+            subset = train,
+            scale=TRUE,
+            validation="CV")
+summary(pcr.fit2)
+validationplot(pcr.fit2,val.type = "MSEP")
+```
+### Technically the lowest error occurs in this model when M=24, however, this hardly reduces dimensions so we look to the next best M.  We then find that when applied to the training data, M=11 achieves the lowest cross-validation error, and explains 96.91% of the variance in the data. 
+
+
+## Compute test MSE for violent crime
+
+```{r}
+y=crime_schools_violent.num$Violent_Crime
+y.test=y[test]
+pcr.pred=predict(pcr.fit2,crime_schools_violent.num[test,], ncomp =12)
+mean((pcr.pred-y.test)^2)
+
+```
+### This test set MSE is higher than using  lasso. Additionaly, as a result of the way PCR is implemented, the ﬁnal model is more diﬃcult to interpret than Lasso because it does not perform any kind of variable selection or even directly produce coeﬃcient estimates.
+
+
+
+
+## Performs Princpal Components Regression to predict Non-violent Crime by Community Area.
+## Performs PCR with the whole data set to select M with least Cross Validation Error
+
+```{r}
+library(pls)
+set.seed(2)
+pcr.fit=pcr(NonViolent_Crime~.,
+            data =crime_schools_nonviolent.num,
+            scale=TRUE,
+            validation="CV")
+summary(pcr.fit)
+validationplot(pcr.fit,val.type="MSEP")
+```
+
+### We find that the lowest cross-validation error occurs when M = 5.  When M=5, 83.3% of the variance is explained. 
+
+## Performs PCR on the training data, so that we can compute Test MSE. 
+
+```{r}
+library(pls)
+set.seed(2)
+pcr.fit4=pcr(NonViolent_Crime~.,
+            data =crime_schools_nonviolent.num,
+            subset = train_nonviolent,
+            scale=TRUE,
+            validation="CV")
+summary(pcr.fit4)
+validationplot(pcr.fit4,val.type = "MSEP")
+```
+
+### When applied to the training data, M=3 achieves the lowest cross-validation error, and explains 71.5% of the variance in the data. 
+
+## Compute test MSE for nonviolent crime
+
+```{r}
+y2=crime_schools_nonviolent.num$NonViolent_Crime
+y.test2=y2[test_nonviolent]
+pcr.pred2=predict(pcr.fit4,crime_schools_nonviolent.num[test_nonviolent,], ncomp =5)
+mean((pcr.pred2-y.test2)^2)
+
+```
+
+
+# Adds a new column to crime_schools.num called "All_Crime" which is an aggregate of Violent_Crime" and "NonViolent_Crime." the new database we are working with that has all crimes is called all_crime.
+
+
+```{r}
+crime_schools_all.num = crime_schools.num
+crime_schools_all.num$All_Crime = rowSums(cbind(crime_schools_all.num$Violent_Crime, crime_schools_all.num$NonViolent_Crime),na.rm=T)
+all_crime = crime_schools_all.num %>%
+  select (2:23,34:36,39)
+head(all_crime)
+```
+
+## Performs Princpal Components Regression to predict All Crime by Community Area.
+## Performs PCR with the whole data set to select M with least Cross Validation Error
+
+```{r}
+library(pls)
+set.seed(8)
+pcr.allcrime=pcr(All_Crime~.,
+            data=all_crime,
+            scale=TRUE,
+            validation="CV")
+summary(pcr.allcrime)
+validationplot(pcr.allcrime,val.type="MSEP")
+```
+### We find that the lowest cross-validation error occurs when M = 5.
+
+##splits all crime data into a training and test set
+```{r}
+train_allcrime = sample(c(TRUE,FALSE), nrow(all_crime), rep=TRUE)
+test_allcrime = (!train_allcrime)
+```
+## Performs PCR for All Crime on the training data, so that we can compute Test MSE. 
+
+```{r}
+library(pls)
+set.seed(9)
+pcr.allcrime2=pcr(All_Crime~.,
+            data =all_crime,
+            subset = train_allcrime,
+            scale=TRUE,
+            validation="CV")
+summary(pcr.allcrime2)
+validationplot(pcr.allcrime2,val.type = "MSEP")
+```
+### We find that when applied to the training data, M=5 still achieves the lowest cross-validation error, and explains 86.49% of the variance in the data. 
+
+
+## Compute test MSE for all crime
+```{r}
+y_all=all_crime$All_Crime
+y.test.all=y_all[test_allcrime]
+pcr.pred.all=predict(pcr.allcrime2,all_crime[test_allcrime,], ncomp =5)
+mean((pcr.pred.all-y.test.all)^2)
+```
+### The test MSE when using PCR to predict all crime is 510732.  
+
+
+
+#Use best subset selection to predict all crime
+
+## Performs best subset selection on the training set to identify the model with the most accurate predictors for violent crime in a community area. 
+
+```{r}
+library(leaps)
+set.seed(25)
+regfit.best.all=regsubsets(All_Crime~.,
+                       data=all_crime[train_allcrime,],
+                       nvmax=19)
+test.mat.all=model.matrix(All_Crime~.,
+                      data=all_crime[test_allcrime,])
+val.errors=rep(NA,19)
+for (i in 1:19) {
+  coefi = coef(regfit.best.all, id=i)
+  pred = test.mat.all[,names(coefi)]%*%coefi
+  val.errors[i] = mean((all_crime$All_Crime[test_allcrime]-pred)^2)
+}
+val.errors
+which.min(val.errors)
+options(scipen=999)
+coef(regfit.best.all,9)
+```
+
+When applying best subset selection to the training data, the best model has 9 predictors (error: 630586)
+
+
+## We will now use best subset selection on the full data set to select the best 9-variable model for all crime:
+
+```{r}
+regfit.best.all2=regsubsets(All_Crime~.,data=all_crime,nvmax=19)
+coef(regfit.best.all2,9)
+plot(regfit.best.all2)
+```
