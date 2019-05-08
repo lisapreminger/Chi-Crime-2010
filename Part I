@@ -194,6 +194,91 @@ plot(regfit.best4)
 
 ### We find that the best model when we used the full data set contains 6 predictors that are not the same. They are now:  Number of Schools, White, Native Hawaiin or Pacific Islander, Owned Units on Loan, Renter Occupied and Households.  
 
+## Perform Lasso Regression on violent crimes, nonviolent crimes, and all crimes.
+
+Note that the standardized "std2010" dataset is described in the project report under Methods in Part I.
+
+```{r Violent Crimes Standardized Setup}
+standardized=std2010[-78,]
+spredict=standardized[c(4, 13:21, 23:24, 26, 32:41, 44, 56:59)]
+spredict[is.na(spredict)]=0
+spredictmat=as.matrix(spredict)
+sviolentcrimes=standardized$Violent
+set.seed(6)
+train3=sample(77, 67)
+testmat3=spredictmat[-train3,]
+testsviolent=sviolentcrimes[-train3]
+```
+```{r Lasso on Violent Crimes Standardized}
+set.seed(7)
+slassoviolent=glmnet(spredictmat[train3,], sviolentcrimes[train3], alpha=1, lambda=grid)
+set.seed(8)
+cvsviolent=cv.glmnet(spredictmat[train3,], sviolentcrimes[train3], alpha=1)
+plot(cvsviolent)
+bestlam3=cvsviolent$lambda.min
+```
+```{r Find Coefficients}
+lassopredict3=predict(slassoviolent, s=bestlam3, newx=testmat3)
+mean((lassopredict3-testsviolent)^2)
+set.seed(9)
+out3=glmnet(spredictmat, sviolentcrimes, alpha=1, lambda=grid)
+sviolentcoef=predict(out3, type="coefficients", s=bestlam3)
+print(sviolentcoef)
+```
+Results were imported to final report. Plots were excluded due to lack of interpretability.
+
+```{r All Crimes Standardized Setup}
+sallcrimes=standardized$CrimeTotal
+set.seed(10)
+train4=sample(77, 67)
+testmat4=spredictmat[-train4,]
+stestcrimes=sallcrimes[-train4]
+```
+
+```{r Create Lasso on All Crimes Standardized}
+set.seed(11)
+slassoall=glmnet(spredictmat[train4,], sallcrimes[train4], alpha=1, lambda=grid)
+set.seed(12)
+cvsall=cv.glmnet(spredictmat[train4,], sallcrimes[train4], alpha=1)
+plot(cvsall)
+bestlam4=cvsall$lambda.min
+```
+```{r Find Coef for All Crimes Standardized}
+lassopredict4=predict(slassoall, s=bestlam4, newx=testmat4)
+mean((lassopredict4-stestcrimes)^2)
+set.seed(13)
+out4=glmnet(spredictmat, sallcrimes, alpha=1, lambda=grid)
+sallcrimecoef=predict(out4, type="coefficients", s=bestlam4)
+print(sallcrimecoef)
+```
+Results were imported to final report. Plots were excluded due to lack of interpretive value (unable to create labels).
+
+```{r Nonviolent Crimes Standardized Setup}
+snonviolent=crimes2010$Nonviolent
+set.seed(14)
+train5=sample(77, 67)
+testmat5=spredictmat[-train5,]
+stestnv=snonviolent[-train5]
+```
+
+```{r Create Lasso on Nonviolent Crimes Std}
+set.seed(15)
+slassonv=glmnet(spredictmat[train5,], snonviolent[train5], alpha=1, lambda=grid)
+set.seed(16)
+cvsnonviolent=cv.glmnet(spredictmat[train5,], snonviolent[train5], alpha=1)
+plot(cvsnonviolent)
+bestlam5=cvsnonviolent$lambda.min
+```
+```{r Find Coef for Nonviolent Crimes Std}
+lassopredict5=predict(slassonv, s=bestlam5, newx=testmat5)
+mean((lassopredict5-stestnv)^2)
+set.seed(17)
+out5=glmnet(spredictmat, snonviolent, alpha=1, lambda=grid)
+snvcoef=predict(out5, type="coefficients", s=bestlam5)
+print(snvcoef)
+```
+Results were imported to final report. Again, plots were excluded due to lack of interpretive value.
+
 ## Performs Princpal Components Regression to predict Violent Crime by Community Area.
 ## Performs PCR with the whole data set to select M with least Cross Validation Error
 
